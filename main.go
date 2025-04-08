@@ -7,28 +7,23 @@ import (
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/torbenconto/plutus/v2"
+	"golang.org/x/term"
 )
 
 var marketIndicators = []string{"^DJI", "^GSPC", "^IXIC"}
 
 var (
-	marketOverviewStyle = lipgloss.NewStyle().
-				Border(lipgloss.RoundedBorder()).
-				Padding(0, 1).
-				Align(lipgloss.Center)
-
-	containerStyle = lipgloss.NewStyle().
-			Width(80).
-			AlignHorizontal(lipgloss.Center)
-
-	headerStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("4")).
-			Bold(true).
-			AlignHorizontal(lipgloss.Center).
-			Padding(1, 0, 1, 0)
+	marketOverviewStyle lipgloss.Style
+	containerStyle      lipgloss.Style
+	headerStyle         = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("4")).
+				Bold(true).
+				AlignHorizontal(lipgloss.Center).
+				Padding(1, 0, 1, 0)
 
 	sectorsStyle = lipgloss.NewStyle().
-			AlignHorizontal(lipgloss.Left).Padding(1, 0, 1, 0)
+			AlignHorizontal(lipgloss.Left).
+			Padding(1, 0, 1, 0)
 
 	subHeaderStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("4")).
@@ -198,10 +193,23 @@ func marketOverview() {
 }
 
 func stockData(ticker string) {
-
 }
 
 func main() {
+	width, _, err := term.GetSize(int(os.Stdout.Fd()))
+	if err != nil {
+		panic(err)
+	}
+
+	containerStyle = lipgloss.NewStyle().
+		Align(lipgloss.Center).
+		Width(width)
+
+	marketOverviewStyle = lipgloss.NewStyle().
+		Padding(0, 1).
+		Align(lipgloss.Center).
+		Border(lipgloss.RoundedBorder())
+
 	header := headerStyle.Render("Oikonomia")
 	subheader := subHeaderStyle.Render("A Financial Market Analysis Tool")
 
