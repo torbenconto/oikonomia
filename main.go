@@ -8,31 +8,67 @@ import (
 	"github.com/torbenconto/plutus/v2"
 )
 
-// List of US market index
 var marketIndicators = []string{"^DJI", "^GSPC", "^IXIC"}
 
-var marketOverviewStyle = lipgloss.NewStyle().
-	Border(lipgloss.RoundedBorder()).
-	Padding(0, 1).
-	Align(lipgloss.Center)
+var (
+	marketOverviewStyle = lipgloss.NewStyle().
+				Border(lipgloss.RoundedBorder()).
+				Padding(0, 1).
+				Align(lipgloss.Center)
 
-var containerStyle = lipgloss.NewStyle().Width(80).AlignHorizontal(lipgloss.Center)
+	containerStyle = lipgloss.NewStyle().
+			Width(80).
+			AlignHorizontal(lipgloss.Center)
 
-var headerStyle = lipgloss.NewStyle().
-	Foreground(lipgloss.Color("4")).
-	Bold(true).
-	AlignHorizontal(lipgloss.Center).
-	Padding(1, 0, 1, 0)
+	headerStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("4")).
+			Bold(true).
+			AlignHorizontal(lipgloss.Center).
+			Padding(1, 0, 1, 0)
+
+	sectorsStyle = lipgloss.NewStyle().
+			AlignHorizontal(lipgloss.Left).Padding(1, 0, 1, 0)
+)
 
 var (
 	negativeChangeColor = "#FF0000"
-	positiveChangeColor = "#00ff00"
+	positiveChangeColor = "#00FF00"
 	neutralChangeColor  = "#454545"
 )
 
 var sectors = map[string][]string{
 	"Finance": {
 		"JPM", "GS", "BAC", "WFC", "C", "AXP", "BRK.B", "BLK", "V", "SCHW", "XLF",
+	},
+	"Technology": {
+		"AAPL", "MSFT", "GOOGL", "NVDA", "META", "AMD", "INTC", "TSM", "CRM", "ORCL", "XLK",
+	},
+	"Healthcare": {
+		"JNJ", "PFE", "MRK", "UNH", "ABBV", "TMO", "ABT", "LLY", "BMY", "CVS", "XLV",
+	},
+	"Energy": {
+		"XOM", "CVX", "COP", "SLB", "PSX", "EOG", "VLO", "MPC", "KMI", "HAL", "XLE",
+	},
+	"Consumer Discretionary": {
+		"AMZN", "TSLA", "HD", "NKE", "SBUX", "MCD", "LOW", "TGT", "BKNG", "ROST", "XLY",
+	},
+	"Consumer Staples": {
+		"PG", "KO", "PEP", "WMT", "COST", "MO", "PM", "CL", "KHC", "KR", "XLP",
+	},
+	"Industrials": {
+		"BA", "CAT", "GE", "UPS", "UNP", "DE", "MMM", "LMT", "RTX", "NOC", "XLI",
+	},
+	"Utilities": {
+		"NEE", "DUK", "SO", "D", "AEP", "EXC", "SRE", "PEG", "XEL", "ED", "XLU",
+	},
+	"Materials": {
+		"LIN", "SHW", "NEM", "DD", "FCX", "APD", "ECL", "NUE", "MLM", "ALB", "XLB",
+	},
+	"Real Estate": {
+		"PLD", "AMT", "CCI", "EQIX", "O", "SPG", "DLR", "WELL", "AVB", "VTR", "XLRE",
+	},
+	"Communication Services": {
+		"GOOGL", "META", "DIS", "NFLX", "TMUS", "VZ", "T", "CHTR", "EA", "XLC",
 	},
 }
 
@@ -44,32 +80,32 @@ type SectorOverview struct {
 func getSectorData() (map[string]SectorOverview, error) {
 	sectorOverview := make(map[string]SectorOverview)
 	var wg sync.WaitGroup
-	mu := sync.Mutex{} // To ensure safe concurrent updates to sectorOverview
+	mu := sync.Mutex{}
 
 	for sector, tickers := range sectors {
 		wg.Add(1)
 		go func(sector string, tickers []string) {
 			defer wg.Done()
 
-			var totalChangePercent, total52wkChangePercent float64
+			var totalChange, total52wkChange float64
 			var count int
 
 			for _, ticker := range tickers {
 				data, err := plutus.GetQuote(ticker)
 				if err != nil {
-					fmt.Printf("Error fetching data for %s: %v\n", ticker, err)
+					fmt.Printf("Error fetching %s: %v\n", ticker, err)
 					continue
 				}
-				totalChangePercent += data.RegularMarketChangePercent
-				total52wkChangePercent += data.FiftyTwoWeekChangePercent
+				totalChange += data.RegularMarketChangePercent
+				total52wkChange += data.FiftyTwoWeekChangePercent
 				count++
 			}
 
 			if count > 0 {
 				mu.Lock()
 				sectorOverview[sector] = SectorOverview{
-					AverageChangePercent:     totalChangePercent / float64(count),
-					Average52wkChangePercent: total52wkChangePercent / float64(count),
+					AverageChangePercent:     totalChange / float64(count),
+					Average52wkChangePercent: total52wkChange / float64(count),
 				}
 				mu.Unlock()
 			}
@@ -77,23 +113,21 @@ func getSectorData() (map[string]SectorOverview, error) {
 	}
 
 	wg.Wait()
-
 	return sectorOverview, nil
 }
 
 func main() {
 	var boxes []string
-
 	sectorDataChan := make(chan map[string]SectorOverview)
 	errChan := make(chan error)
 
 	go func() {
-		sectorData, err := getSectorData()
+		data, err := getSectorData()
 		if err != nil {
 			errChan <- err
 			return
 		}
-		sectorDataChan <- sectorData
+		sectorDataChan <- data
 	}()
 
 	for _, ticker := range marketIndicators {
@@ -103,41 +137,55 @@ func main() {
 		}
 
 		var color lipgloss.Color
-
 		switch {
 		case quote.RegularMarketChangePercent > 0:
 			color = lipgloss.Color(positiveChangeColor)
 		case quote.RegularMarketChangePercent < 0:
 			color = lipgloss.Color(negativeChangeColor)
+		default:
+			color = lipgloss.Color(neutralChangeColor)
 		}
 
-		overviewTicker := marketOverviewStyle.Render(fmt.Sprintf(
-			"%s\n $%.2f %s",
+		box := marketOverviewStyle.Render(fmt.Sprintf(
+			"%s\n$%.2f %s",
 			quote.Ticker,
 			quote.RegularMarketPrice,
-			lipgloss.NewStyle().Foreground(color).Render(fmt.Sprintf("%.2f%%", quote.RegularMarketChangePercent)),
+			lipgloss.NewStyle().
+				Foreground(color).
+				Render(fmt.Sprintf("%.2f%%", quote.RegularMarketChangePercent)),
 		))
-
-		boxes = append(boxes, overviewTicker)
+		boxes = append(boxes, box)
 	}
 
 	header := headerStyle.Render("Oikonomia")
-
 	marketOverviewRow := lipgloss.JoinHorizontal(lipgloss.Top, boxes...)
 
-	content := fmt.Sprintf("%s\n%s", header, marketOverviewRow)
-	layout := containerStyle.Render(content)
-
-	fmt.Println(layout)
-
+	var sectorRows []string
 	select {
 	case sectorData := <-sectorDataChan:
-		// Process the sectorData
 		for sector, summary := range sectorData {
-			fmt.Println(sector, summary.AverageChangePercent)
-		}
+			var sectorColor lipgloss.Color
+			switch {
+			case summary.AverageChangePercent > 0:
+				sectorColor = lipgloss.Color(positiveChangeColor)
+			case summary.AverageChangePercent < 0:
+				sectorColor = lipgloss.Color(negativeChangeColor)
+			default:
+				sectorColor = lipgloss.Color(neutralChangeColor)
+			}
 
+			sectorRows = append(sectorRows, fmt.Sprintf("%-24s %s", sector+":", lipgloss.NewStyle().Foreground(sectorColor).Render(fmt.Sprintf("%.2f%%", summary.AverageChangePercent))))
+		}
 	case err := <-errChan:
 		panic(err)
 	}
+
+	sectorComponent := sectorsStyle.Render(
+		lipgloss.JoinVertical(lipgloss.Left, sectorRows...),
+	)
+
+	content := fmt.Sprintf("%s\n%s\n\n%s", header, marketOverviewRow, sectorComponent)
+	layout := containerStyle.Render(content)
+
+	fmt.Println(layout)
 }
