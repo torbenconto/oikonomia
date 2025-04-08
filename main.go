@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"sync"
 
 	"github.com/charmbracelet/lipgloss"
@@ -28,6 +29,13 @@ var (
 
 	sectorsStyle = lipgloss.NewStyle().
 			AlignHorizontal(lipgloss.Left).Padding(1, 0, 1, 0)
+
+	subHeaderStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("4")).
+			Bold(true).
+			AlignHorizontal(lipgloss.Center).
+			Italic(true).
+			Padding(0, 0, 1, 0)
 )
 
 var (
@@ -116,7 +124,7 @@ func getSectorData() (map[string]SectorOverview, error) {
 	return sectorOverview, nil
 }
 
-func main() {
+func marketOverview() {
 	var boxes []string
 	sectorDataChan := make(chan map[string]SectorOverview)
 	errChan := make(chan error)
@@ -157,7 +165,6 @@ func main() {
 		boxes = append(boxes, box)
 	}
 
-	header := headerStyle.Render("Oikonomia")
 	marketOverviewRow := lipgloss.JoinHorizontal(lipgloss.Top, boxes...)
 
 	var sectorRows []string
@@ -184,8 +191,28 @@ func main() {
 		lipgloss.JoinVertical(lipgloss.Left, sectorRows...),
 	)
 
-	content := fmt.Sprintf("%s\n%s\n\n%s", header, marketOverviewRow, sectorComponent)
+	content := fmt.Sprintf("%s\n\n%s", marketOverviewRow, sectorComponent)
 	layout := containerStyle.Render(content)
 
 	fmt.Println(layout)
+}
+
+func stockData(ticker string) {
+
+}
+
+func main() {
+	header := headerStyle.Render("Oikonomia")
+	subheader := subHeaderStyle.Render("A Financial Market Analysis Tool")
+
+	fmt.Println(containerStyle.Render(header))
+	fmt.Println(containerStyle.Render(subheader))
+
+	argc := len(os.Args)
+	if argc > 1 {
+		stockData(os.Args[1])
+		return
+	}
+
+	marketOverview()
 }
