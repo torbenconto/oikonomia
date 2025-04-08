@@ -1,5 +1,5 @@
 
-![logo](./assets/logo.png)
+![logo](./assets/logo.jpg)
 
 # Oikonomia
 _A Command Line Application for Analyzing Financial Markets_
