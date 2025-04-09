@@ -197,6 +197,13 @@ func stockData(ticker string) {
 
 	topRow := stockTopRowStyle.Render(fmt.Sprintf("%s   $%s   %s", quote.Ticker, humanize.FormatFloat("#,###.##", quote.RegularMarketPrice), lipgloss.NewStyle().Foreground(color).Render(fmt.Sprintf("%.2f%%", quote.RegularMarketChangePercent))))
 
+	var marketCap string
+	if quote.MarketCap > 0 {
+		marketCap = "$" + humanize.Comma(int64(quote.MarketCap))
+	} else {
+		marketCap = "n/a"
+	}
+
 	entries := []struct {
 		label string
 		value interface{}
@@ -221,7 +228,7 @@ func stockData(ticker string) {
 				}()).
 				Render(fmt.Sprintf("%.2f%%", quote.FiftyTwoWeekChangePercent)),
 		},
-		{"Market Cap", "$" + humanize.Comma(int64(quote.MarketCap))},
+		{"Market Cap", marketCap},
 		{"Volume", humanize.Comma(int64(quote.RegularMarketVolume))},
 		{"Avg Volume", humanize.Comma(int64(quote.AverageDailyVolume3Month))},
 	}
