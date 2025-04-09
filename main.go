@@ -208,9 +208,9 @@ func stockData(ticker string) {
 		label string
 		value interface{}
 	}{
-		{"Open", fmt.Sprintf("$%.2f", quote.RegularMarketOpen)},
-		{"High", fmt.Sprintf("$%.2f", quote.RegularMarketDayHigh)},
-		{"Low", fmt.Sprintf("$%.2f", quote.RegularMarketDayLow)},
+		{"Open Price", fmt.Sprintf("$%.2f", quote.RegularMarketOpen)},
+		{"High Price", fmt.Sprintf("$%.2f", quote.RegularMarketDayHigh)},
+		{"Low Price", fmt.Sprintf("$%.2f", quote.RegularMarketDayLow)},
 		{"52wk High", fmt.Sprintf("$%.2f", quote.FiftyTwoWeekHigh)},
 		{"52wk Low", fmt.Sprintf("$%.2f", quote.FiftyTwoWeekLow)},
 		{
